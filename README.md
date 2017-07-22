@@ -12,6 +12,6 @@ Add files to htdocs, setup a Neo4j database and go to localhost or the IP addres
 
 
 
-
+Basically the terms of the GNU General Public License are intended... do what you will, I'm using it as it is anyway!
 
 
