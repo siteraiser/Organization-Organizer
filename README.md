@@ -1,5 +1,5 @@
 # Organization Organizer
-In simple terms a CRUD for designed for account managers that take care of many different organizations and their web accounts. 
+In simple terms, a CRUD for designed for account managers that take care of many different organizations and their web accounts. 
 
 The Organization Organizer is built on the Micro-MVC (updated for Neo4j use) which can be found here: https://github.com/siteraiser/Micro-MVC.
 
@@ -13,4 +13,6 @@ Add files to htdocs, setup a Neo4j database and go to localhost or the IP addres
 
 
 Basically the terms of the GNU General Public License are intended... do what you will, I'm using it as it is anyway!
+
+
 
