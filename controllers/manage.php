@@ -92,7 +92,7 @@ class manage extends requestHandler{
 	if(isset($_GET['websiteid'])){
 	   $data['add_in'].= '&websiteid='.$_GET['websiteid'];
 	}else if(isset($this->manage_model->Website_array['oid']) && $this->manage_model->Website_array['oid'] !== ''){
-	   $data['add_in'].= '&websiteid='.$this->manage_model->Organization_array['oid'];	
+	   $data['add_in'].= '&websiteid='.$this->manage_model->Website_array['oid'];	
 	}
 
 
@@ -426,7 +426,7 @@ class manage extends requestHandler{
 	if(isset($_GET['websiteid'])){
 	   $data['add_in'].= '&websiteid='.$_GET['websiteid'];
 	}else if(isset($this->manage_model->Website_array['oid']) && $this->manage_model->Website_array['oid'] !== ''){
-	   $data['add_in'].= '&websiteid='.$this->manage_model->Organization_array['oid'];	
+	   $data['add_in'].= '&websiteid='.$this->manage_model->Website_array['oid'];	
 	}
 
 
