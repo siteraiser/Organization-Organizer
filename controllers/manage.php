@@ -1,439 +1,452 @@
 <?php 
-//CREATE INDEX ON :User(name)
-//CREATE INDEX ON :User(name)
+class manage extends requestHandler{
+	public function index(){
+		$data['title']="Home";
+		require_once $this->doc_root().'classes/labels.php';
 
-//use Neoxygen\NeoClient\ClientBuilder;
+		//$this->loadModel('manage_model',$Labels);	
+		$fields = $this->loadModel('link_model',$Labels);	
 
-
-
-
-
-class manage_model extends requestHandler{
-	
-	public $labels =""; 
-	public $Organization_array=[];
-	public $Location_array=[];
-	public $Website_array=[];
-	public $Web_Account_array=[];
-	public $Login_Details_array=[];
-	public $Person_array=[];
-	
-	public function __construct($Labels){	
-		
-		$this->labels=$Labels;
-	}
-
-	
-	
-	public function createID($label = 'Organization'){			
-
-		$query = "MATCH (n:$label) RETURN n,toFloat(n.oid) AS ord ORDER BY ord DESC LIMIT 1";
-		$result = $this->client->run($query);
-		$id=-1;
-		foreach ($result->getRecords() AS $record) {
-			echo '<br>'.$label.' highest id found: '. $id = $record->value('ord');
-		}	
-		return ($id + 1);
-	}
-	
-	
-	public function createLink($aid,$bid,$labela,$labelb,$link_label){	
-	
-		$query = "
-		MATCH (a:$labela {oid:{a}}),(b:$labelb {oid:{b}})
-		//WHERE not ((a)-[:blocked]-(b))     
-		CREATE UNIQUE (a)-[:$link_label]->(b)
-		";
-		$result = $this->client->run($query,["a"=>$aid,"b"=>$bid]);
-	}
-	
-	public function removeLink($aid,$bid,$labela,$labelb,$link_label){	
-	
-		$query = "
-		MATCH (a:$labela {oid:{a}})-[r:$link_label]-(b:$labelb {oid:{b}})
-		  
-		DELETE r
-		";
-		$result = $this->client->run($query,["a"=>$aid,"b"=>$bid]);
-	}	
-		
-	public function makeForms($type='Organization'){
-
-		$array = $this->labels->$type->Properties;
-		//add to form out array
-		foreach($array AS $key => $property){
-			$name = $type.'-'.$key;
-			
-			
-			$input_type = $property['type'];
-			
-			//get select list or load exertnal list maybe
-			$select_list = '';
-			if($input_type == 'select'){
-				$select_list = $property['list'];
-			}
-				
-			$input='';
-			if($input_type == 'checkbox'){
-				$input = "<input name='$name' type='hidden' value='0'>".
-						" <input type='checkbox' name='$name' value='1'>";
-			}else if($input_type == 'select'){
-					
-				 $input = '<select name="'.$name.'">
-				 <option value=""></option>'.
-				 $this->selectedOption($select_list, []).						
-				'</select>';
-			}else{
-				$input = "<input type='text' name='$name' value=''>";
-			}
-			
-			
-			
-			$element = "$name: $input";//.($property['type'] == 'checkbox' ? "<input  name='$name' type='hidden' value='0'>":"")." <input type='{$property['type']}' name='$name' ".($property['type'] == 'checkbox' ? "value='1'":"").">";			// <
-			$this->form_array[$type][] = $element ;
-		}		
+		$fields = $this->link_model->getLinks();
 	//	echo '<pre>';
-		//var_dump($this->form_array);
-		//echo '</pre>';
-	}	
+	//	var_dump($fields);
+	//	echo '</pre>';
 		
-	/// GET INFO	
-	public function filledForms($type='Organization'){
+		
+		$this->addView('list',$data);
+		
+	}
+	public function add(){
+		$data['title']="Home";
+		require_once $this->doc_root().'classes/labels.php';
 
-		
-		$type_array_name = $type.'_array';
-		$id = $this->$type_array_name['oid'];
-		
-		//Get organization
-		$array = $this->labels->$type->Properties;
-		
-		$properties_array=[];
-	
-		//add to form out array
-		foreach($array AS $key =>$property){
-			$properties_array[]='n.'.$key;
-		}
-		$insert=implode(',',$properties_array);		
-		//HERE!
-		$query="
-			MATCH (n:$type{oid:'$id'}) RETURN $insert";
-			$result = $this->client->run($query);
-		
-			foreach ($result->getRecords() AS $record) {
+		$this->loadModel('manage_model',$Labels);	
+			switch (strtolower($_GET['field'])) {
+			case 'organization':
+				if(!isset($_POST['submit']) && !isset($_GET['update'])){					
+					$data['view_mode'] = 'Add';
+					$this->manage_model->makeForms('Organization');	   
+					$this->manage_model->makeForms('Website');	 
+					$this->manage_model->makeForms('Person');					
+				} 
+				break;				
 				
-				foreach($properties_array AS $prop){
-					foreach($array AS $key3 =>$props){
-						if($key3 == substr($prop,2)){
-							$name = $type.'-'.$key3;
-							$input_type = $props['type'];
-							
-							//get select list or load exertnal list maybe
-							$select_list = '';
-							if($input_type == 'select'){
-								$select_list = $props['list'];
-							}
-						}							
-					}
-					$input='';
-					if($input_type == 'checkbox'){
-						$input = "<input name='$name' type='hidden' ".($record->value($prop) == 1? 'checked':'')." value='0'>".
-								" <input type='checkbox' name='$name' ".( $record->value($prop) == 1 ? "checked":"")." value='1'>";
-					}else if($input_type == 'select'){
-						
-						 $input = '<select name="'.$name.'">
-						 <option value=""></option>'.
-						 $this->selectedOption($select_list, @$record->value($prop)).						
-						'</select>';
-					}else{
-						$input = "<input type='text' name='$name' value='{$record->value($prop)}'>";
-					}
-					
-					
-					$element = "$name: $input";		
-					
-					
-					$this->form_array[$type][] = $element ;
-				}				
-			}
-	
-	}	
-
-	///INSERT	---------------
-	public function insertForms(){
-
-	
-		//add to form out array
-		foreach($_POST AS $name => $value){
-	
-			if($value !='Add'){
-				list($type,$field) = explode('-',$name);
-				$label_type='insert'.$type;
-				$insert_array[$label_type][$field] = $value;//($value == '' ? '0' : $value);
-				if(strtolower($type)== strtolower($_GET['field'])){
-					$property = $type.'_array';
-					$this->$property[$field] = $value;
-				}
-			}
-			
-		}		
-	/*	echo '<pre>';
-		var_dump($this->Organization_array);
-		echo '</pre>';
-		echo '<pre>';
-		var_dump($insert_array);
-		echo '</pre>';
-		*/
-		
-		foreach($insert_array AS $name => $value){
-			$this->$name($value);
-		}
-		
-		
-	}	
-
-
-
-	
-	public function getForms(){
-		return $this->form_array;	
-	}	
-
-	public function buildQuery($data){
-		$insert_array=[];
-		$fields=[];
-		foreach($data AS $field => $value){
-			$insert_array[]=$field.':{'.$field.'}';
-			$fields[$field]=$value;
-		}
-		$insert=implode(',',$insert_array);
-		return (object)["insert"=>$insert,"fields"=>$fields];
-	}
-	
-
-	public function insertOrganization($data=[]){			
-	
-		$queryObject=$this->buildQuery($data);	
-		
-		$id = $this->createID('Organization');
-		$this->Organization_array['oid'] = $id;
-		
-		$query = "CREATE (biz:Organization {oid:'$id',".$queryObject->insert."})";
-		$result = $this->client->run($query,$queryObject->fields);
-
-	}
-
-
-	
-	
-	public function insertLocation($data=[]){			
-
-		$queryObject=$this->buildQuery($data);		
-		
-		$id = $this->createID('Location');
-		$this->Location_array['oid'] = $id;
-		
-		
-		$query = "
-		MATCH (O:Organization {oid:'".$this->Organization_array['oid']."'})
-		CREATE (O)<-[:Location_Of]-(:Location {oid:'$id',".$queryObject->insert."})
-		";
-		$result = $this->client->run($query,$queryObject->fields);
-
-	}
-
-	public function insertWebsite($data=[]){			
-
-		$queryObject=$this->buildQuery($data);		
-		
-		$id = $this->createID('Website');
-		$this->Website_array['oid'] = $id;
-		 if(isset($this->Location_array['oid'])){
-			$parent_label="Location";
-			$parent_id=$this->Location_array['oid'];
-		 }else{
-			$parent_label="Organization";
-			$parent_id=$this->Organization_array['oid'];
-		 }
-		
-		$query = "
-		MATCH (N2:$parent_label {oid:'".$parent_id."'})
-		CREATE (N2)<-[:Website_Of]-(:Website {oid:'$id',".$queryObject->insert."})
-		";
-		$result = $this->client->run($query,$queryObject->fields);
-
-	}	
-	
-	public function insertPerson($data=[]){			
-
-		$queryObject=$this->buildQuery($data);		
-		
-		$id = $this->createID('Person');
-		$this->Person_array['oid'] = $id;
-		
-		$query = "
-		MATCH (O:Organization {oid:'".$this->Organization_array['oid']."'})
-		CREATE (O)<-[:Works_For]-(:Person {oid:'$id',".$queryObject->insert."})
-		";
-		$result = $this->client->run($query,$queryObject->fields);
-
-	}
-	public function insertWeb_Account($data=[]){			
-
-		$queryObject=$this->buildQuery($data);		
-		
-		$id = $this->createID('Web_Account');
-		$this->Web_Account_array['oid'] = $id;
-		
-		$query = "
-		MATCH (W:Website {oid:'".$this->Website_array['oid']."'})
-		CREATE (W)<-[:Account_Of]-(:Web_Account {oid:'$id',".$queryObject->insert."})
-		//RETURN O
-		";
-		$result = $this->client->run($query,$queryObject->fields);
-		
-		/*echo '<pre>';
-		var_dump($queryObject->fields);
-		echo '</pre>';
-		*/
-		
-		//Add organization
-		//$query = 'CREATE (biz:Organization {name:{name},type:{type},is_client:{is_client}})';
-		//$neo4j->run($query,["name"=>$name,"type"=>$type,"is_client"=>$is_client]);
-
-	}	
-	
-	
-	
-	//UPDATES--------
-
-	
-	
-	
-	public function updateForms(){
-		$this->Organization_array['oid'] = $_GET['orgid'];
-		//add to form out array
-		foreach($_POST AS $name => $value){
-	
-			if($value !='Update'){//explode count !== 2...
-				list($type,$field) = explode('-',$name);
-				$update_array[$type][$field] = $value;//($value == '' ? '0' : $value);
-				if(strtolower($type)== strtolower($_GET['field'])){
-					$property = $type.'_array';
-					$this->$property[$field] = $value;
-				}
-			}
-			
-		}	
-		
-		foreach($update_array AS $label => $value){
-			$this->update($label,$value);
-		}		
-	}
-	
-	public function buildUpdateQuery($data){
-		
-		$update_array=[];
-		$fields=[];
-		foreach($data AS $field => $value){
-			$update_array[]='n.'.$field."={".$field."}";
-			$fields[$field]=$value;
-		}
-		$update=implode(',',$update_array);
-		return (object)["update"=>$update,"fields"=>$fields];
-	}
-	
-	public function update($label,$data=[]){			
-		
-		$prop_name= $label.'_array';	
-		
-		$queryObject=$this->buildUpdateQuery($data);	
-		$query = "
-		MATCH (n:$label {oid:'".$this->$prop_name['oid']."'}) 
-		SET $queryObject->update";
-		
-		$result = $this->client->run($query,$queryObject->fields);
-	}
-
-	
-	/**** DELETE FUNCTIONS ****/
-	public function deleteOrganization($id){
-		//Only deletes accounts they aren't attached to another organization (or another orgs location)
-		$query = "MATCH (org:Organization {oid:'$id'})
-		OPTIONAL MATCH (org:Organization)<-[*..3]-(w:Website)-[:Account_Of]-(a:Web_Account)
-		WITH org,a
-		OPTIONAL MATCH (a)-[*..3]->(o2:Organization)
-		WHERE NOT o2.oid = '$id'
-		WITH org,CASE WHEN COUNT(o2) > 0 THEN NULL ELSE a END AS a
-
-		OPTIONAL MATCH (w:Website)-[:Website_Of]->(org)
-		WITH org,a,w
-
-		OPTIONAL MATCH (l:Location)-[:Location_Of]->(org)
-		WITH org,a,w,l
-
-		OPTIONAL MATCH (lw:Website)-[:Website_Of]->(l)
-		WITH org,a,w,l,lw
-
-		OPTIONAL MATCH (p:Person)-[:Works_For]->(org)
-		WITH org,a,w,l,lw,p
-		OPTIONAL MATCH (pl:Person)-[:Works_For]->(l)
-		WITH org,a,w,l,lw,p,pl
-		DETACH DELETE org,a,w,l,lw,p,pl";
-		$result = $this->client->run($query);
-	}	  
-	
-	public function deleteLocation($id){
-		//Only deletes accounts if they aren't an account for an organization or another location 
-		$query = "		
-	MATCH (loc:Location {oid:'$id'})
-		OPTIONAL MATCH (loc:Location)<-[:Website_Of]-(ws:Website)-[:Account_Of]-(a:Web_Account)
-		
-		WITH loc,a
-		
-		OPTIONAL MATCH (a)-[:Account_Of]->(:Website)-[:Website_Of]->(l2:Location)
-		WHERE NOT l2.oid = '$id'
-		WITH loc,a,l2 AS locs 		
-
-		WITH loc,a,locs
-		OPTIONAL MATCH (a)-[:Account_Of]-(:Website)-[:Website_Of]->(orgs2:Organization) 
+			case 'location':
+				if(!isset($_POST['submit']) && !isset($_GET['update'])){					
+					$data['view_mode'] = 'Add';
+					$this->manage_model->makeForms('Location');	 					
+				} 			   
+				break;		
 				
-		WITH loc,CASE WHEN (COUNT(locs)  + COUNT(orgs2)) > 0 THEN NULL ELSE a END AS a		
+			case 'website':
+				if(!isset($_POST['submit']) && !isset($_GET['update'])){					
+					$data['view_mode'] = 'Add';
+					$this->manage_model->makeForms('Website');	 					
+				}			   
+				break;
+				
+			case 'person':
+				if(!isset($_POST['submit']) && !isset($_GET['update'])){					
+					$data['view_mode'] = 'Add';
+					$this->manage_model->makeForms('Person');	 					
+				}			   
+				break;				
+				
+			case 'web_account':	
+				if(!isset($_POST['submit']) && !isset($_GET['update'])){					
+					$data['view_mode'] = 'Add';
+					$this->manage_model->makeForms('Web_Account');	 					
+				}					
+					   
+				break;
+				
+			case 'login_details':
+				echo "i equals 1";
+				break;
+		}
 		
-		OPTIONAL MATCH (w:Website)-[:Website_Of]->(loc)
-		WITH loc,a,w
+		
+			
+		$data['forms'] = $this->manage_model->getForms();
 
-		OPTIONAL MATCH (p:Person)-[:Works_For]->(loc)
-		WITH loc,a,w,p
+		$type = ucfirst($_GET['field']).'_array';
+		$data['add_in']='';
+		//Org ID
+	if(isset($_GET['orgid'])){
+	   $data['add_in'] = '&orgid='.$_GET['orgid'];
+	}else if(isset($this->manage_model->Organization_array['oid']) && $this->manage_model->Organization_array['oid'] !== ''){
+	   $data['add_in'] = '&orgid='.$this->manage_model->Organization_array['oid'];	
+	}
 
-		DETACH DELETE loc,a,w,p
-		";
-		$result = $this->client->run($query);
-	}	  	
+
+	//Loc ID
+	if(isset($_GET['locationid'])){
+	   $data['add_in'].= '&locationid='.$_GET['locationid'];
+	}else if(isset($this->manage_model->Location_array['oid']) && $this->manage_model->Location_array['oid'] !== ''){
+	   $data['add_in'].= '&locationid='.$this->manage_model->Location_array['oid'];	
+	}
+
+
+
+	//Website ID
+	if(isset($_GET['websiteid'])){
+	   $data['add_in'].= '&websiteid='.$_GET['websiteid'];
+	}else if(isset($this->manage_model->Website_array['oid']) && $this->manage_model->Website_array['oid'] !== ''){
+	   $data['add_in'].= '&websiteid='.$this->manage_model->Website_array['oid'];	
+	}
+
+
+
+	//Edit ID
+	if(isset($_GET['editid'])){
+	   $data['add_in'].= '&editid='.$_GET['editid'];
+	}else if(isset($this->manage_model->$type['oid']) && $this->manage_model->$type['oid'] !== ''){
+	   $data['add_in'].= '&editid='.$this->manage_model->$type['oid'];
+	}
+		
+		$this->addView('manage',$data);
+	}
 	
-	public function deleteWebsite($id){
-		//Only deletes account if it is not an account for another website
-		$query = "MATCH (ws:Website {oid:'$id'})
-		OPTIONAL MATCH (ws:Website)<-[:Account_Of]-(a:Web_Account)
-		WITH ws,a
-		OPTIONAL MATCH (a)-[:Account_Of]->(w2:Website)
-		WHERE NOT w2.oid = '$id'
-		WITH ws,CASE WHEN COUNT(w2) > 0 THEN NULL ELSE a END AS a
-		DETACH DELETE ws,a";
-		$result = $this->client->run($query);
-	}	  		
 	
-	public function deleteWeb_Account($id){
-		$query = "MATCH (wa:Web_Account {oid:'$id'})
-		DETACH DELETE wa";
-		$result = $this->client->run($query);
-	}	  	
+	public function update(){
+		
+		
+		
+		$data['title']="Update";
+		require_once $this->doc_root().'classes/labels.php';
+
+		$this->loadModel('manage_model',$Labels);	
+		$this->loadModel('link_model',$Labels);	
 	
-	public function deletePerson($id){
-		$query = "MATCH (p:Person {oid:'$id'})
-		DETACH DELETE p";
-		$result = $this->client->run($query);
-	}	 
+
+		switch (strtolower($_GET['field'])) {
+			case 'organization':
+			
+				if(isset($_POST['submit']) && $_POST['submit'] == 'Delete' && !isset($_GET['update'])){
+
+					if(isset($_GET['orgid'])){
+						$this->manage_model->Organization_array['oid']=$_GET['editid'];
+					}
+					$this->manage_model->deleteOrganization($_GET['editid']);	  
+					//redirect back to /manage or add
+					$data['view_mode'] = 'Update';//next mode
+
+					
+				}
+			
+				if(isset($_POST['submit']) && $_POST['submit'] == 'Add' && !isset($_GET['update'])){
+					/*
+					explode names and update all fields
+					*/
+					$data['view_mode'] = 'Update';//next mode
+					$this->manage_model->insertForms();	   					
+					
+				} else if((isset($_POST['submit']) && $_POST['submit'] == 'Update') && !isset($_GET['update'])){
+					/*
+					explode names and update all fields
+					*/
+					$data['view_mode'] = 'Update';//next mode
+					$this->manage_model->updateForms();	   
+					
+				}else{
+					$data['view_mode'] = 'Update';//next mode
+				//	if(isset($_GET['orgid'])){
+				//		$this->manage_model->Organization_array['oid']=$_GET['orgid'];
+				//	}else{
+						$this->manage_model->Organization_array['oid']=$_GET['editid'];
+				//	}
+				}	
+				$this->manage_model->filledForms('Organization');
+				$this->link_model->OrganizationLinks($this->manage_model->Organization_array['oid']);
+				$data['links'] = $this->link_model->links;
+				$data['add_links'] = $this->link_model->add_links;
+			 // $this->load('Organization');	  
+			   
+				break;
+				
+				
+			case 'location':
+				if(isset($_POST['submit']) && $_POST['submit'] == 'Delete' && !isset($_GET['update'])){
+
+					if(isset($_GET['orgid'])){
+						$this->manage_model->Location_array['oid']=$_GET['editid'];
+					}
+					$this->manage_model->deleteLocation($_GET['editid']);	  
+					//redirect back to /manage or add
+					$data['view_mode'] = 'Update';//next mode
+
+					
+				}
+			
+				if(isset($_POST['submit']) && $_POST['submit'] == 'Add' && !isset($_GET['update'])){
+					/*
+					explode names and insert all fields
+					*/
+					if(isset($_GET['orgid'])){
+						$this->manage_model->Organization_array['oid']=$_GET['orgid'];
+					}
+					$data['view_mode'] = 'Update';//next mode
+					$this->manage_model->insertForms();	   					
+					
+				} else if((isset($_POST['submit']) && $_POST['submit'] == 'Update') && !isset($_GET['update'])){
+					/*
+					explode names and insert all fields
+					*/
+				//	$this->manage_model->Organization_array['oid']=$_GET['orgid'];
+					$this->manage_model->Location_array['oid']=$_GET['editid'];
+					
+					$data['view_mode'] = 'Update';//next mode
+					$this->manage_model->updateForms();	   					
+					
+				}else{
+					$this->manage_model->Organization_array['oid']=$_GET['orgid'];
+					$this->manage_model->Location_array['oid']=$_GET['editid'];
+					$data['view_mode'] = 'Update';//next mode		 
+					
+				}	
+				$this->manage_model->filledForms('Location');
+				$this->link_model->LocationLinks($this->manage_model->Location_array['oid']);
+				$data['links'] = $this->link_model->links;
+			  	$data['add_links'] = $this->link_model->add_links;
+			   
+				break;		
+
+				
+			case 'website':
+				//Linking
+				if($_POST['submit']=='Remove-Link'){
+					$this->manage_model->removeLink($_POST['unlink-web_account'],$_GET['editid'],'Web_Account','Website','Account_Of');//createLink($aid,$bid,$labela,$labelb,$link_label){	//a->b
+				}//skips to the edit part :D when done
+
+
+				//Linking
+				if($_POST['submit']=='Add-Link'){
+					$this->manage_model->createLink($_POST['link-web_account'],$_GET['editid'],'Web_Account','Website','Account_Of');//createLink($aid,$bid,$labela,$labelb,$link_label){	//a->b
+				}//skips to the edit part :D when done
+
+
+				
+				//Delete
+				if(isset($_POST['submit']) && $_POST['submit'] == 'Delete' && !isset($_GET['update'])){
+
+					if(isset($_GET['orgid'])){
+						$this->manage_model->Website_array['oid']=$_GET['editid'];
+					}
+					$this->manage_model->deleteWebsite($_GET['editid']);	  
+					//redirect back to /manage or add
+					$data['view_mode'] = 'Update';//next mode
+
+					
+				}
+				
+				
+				
+				if(isset($_POST['submit']) && $_POST['submit'] == 'Add' && !isset($_GET['update'])){
+					/*
+					explode names and insert all fields
+					*/
+					if(isset($_GET['orgid'])){
+						$this->manage_model->Organization_array['oid']=$_GET['orgid'];
+					}
+					if(isset($_GET['locationid'])){
+						$this->manage_model->Location_array['oid']=$_GET['locationid'];
+					}
+					
+					$data['view_mode'] = 'Update';//next mode
+					$this->manage_model->insertForms();	   					
+					
+				} else if((isset($_POST['submit']) && $_POST['submit'] == 'Update') && !isset($_GET['update'])){
+					/*
+					explode names and insert all fields
+					*/
+
+					$this->manage_model->Website_array['oid']=$_GET['editid'];
+					
+					$data['view_mode'] = 'Update';//next mode
+					$this->manage_model->updateForms();	  					
+					
+				}else{
+					$this->manage_model->Organization_array['oid']=$_GET['orgid'];
+					$this->manage_model->Website_array['oid']=$_GET['editid'];
+					$data['view_mode'] = 'Update';//next mode
+				  				
+				}	
+				$this->manage_model->filledForms('Website');  
+			   	$this->link_model->WebsiteLinks($this->manage_model->Website_array['oid']);
+				$data['links'] = $this->link_model->links;
+				$data['add_links'] = $this->link_model->add_links;
+				$arrays = $this->link_model->getNameAndId('Web_Account',$this->manage_model->Website_array['oid']);
+				$data['link_to_array'] = $arrays[0];
+				$data['removal_array'] = $arrays[1];
+				break;
+				
+			case 'person':
+				//Delete
+				if(isset($_POST['submit']) && $_POST['submit'] == 'Delete' && !isset($_GET['update'])){
+
+					if(isset($_GET['orgid'])){
+						$this->manage_model->Person_array['oid']=$_GET['editid'];
+					}
+					$this->manage_model->deletePerson($_GET['editid']);	  
+					//redirect back to /manage or add
+					$data['view_mode'] = 'Update';//next mode				
+				}
+				
+				if(isset($_POST['submit']) && $_POST['submit'] == 'Add' && !isset($_GET['update'])){
+					/*
+					explode names and insert all fields
+					*/
+					if(isset($_GET['orgid'])){
+						$this->manage_model->Organization_array['oid']=$_GET['orgid'];
+					}
+					if(isset($_GET['locationid'])){
+						$this->manage_model->Location_array['oid']=$_GET['orgid'];
+					}
+					$data['view_mode'] = 'Update';//next mode
+					$this->manage_model->insertForms();	   
+					
+				} else if((isset($_POST['submit']) && $_POST['submit'] == 'Update') && !isset($_GET['update'])){
+					/*
+					explode names and insert all fields
+					*/
+					$this->manage_model->Person_array['oid']=$_GET['editid'];
+					
+					$data['view_mode'] = 'Update';//next mode
+					$this->manage_model->updateForms();	   
+					
+				}else{
+					
+					$this->manage_model->Person_array['oid']=$_GET['editid'];
+					$data['view_mode'] = 'Update';//next mode  
+
+				}	
+				$this->manage_model->filledForms('Person');	
+			   	$this->link_model->PersonLinks($this->manage_model->Person_array['oid']);
+				$data['links'] = $this->link_model->links;			   
+				break;
+				
+				
+			case 'web_account':
+				
+				if($_POST['submit']=='Remove-Link'){
+					$this->manage_model->removeLink($_GET['editid'],$_POST['unlink-website'],'Web_Account','Website','Account_Of');//createLink($aid,$bid,$labela,$labelb,$link_label){	//a->b
+				}//skips to the edit part :D when done
+				
+				if($_POST['submit']=='Add-Link'){
+					$this->manage_model->createLink($_GET['editid'],$_POST['link-website'],'Web_Account','Website','Account_Of');//createLink($aid,$bid,$labela,$labelb,$link_label){	//a->b
+				}//skips to the edit part :D when done
+			
+				//Delete
+				if(isset($_POST['submit']) && $_POST['submit'] == 'Delete' && !isset($_GET['update'])){
+
+					if(isset($_GET['orgid'])){
+						$this->manage_model->Web_Account_array['oid']=$_GET['editid'];
+					}
+					$this->manage_model->deleteWeb_Account($_GET['editid']);	  
+					//redirect back to /manage or add
+					$data['view_mode'] = 'Update';//next mode				
+				}
+			
+			
+				if(isset($_POST['submit']) && $_POST['submit'] == 'Add' && !isset($_GET['update'])){
+					/*
+					explode names and insert all fields
+					*/	
+					
+					if(isset($_GET['websiteid'])){
+						$this->manage_model->Website_array['oid']=$_GET['websiteid'];
+					}
+					//Not currently being, save for future use though! 
+				//	if(isset($_GET['orgid'])){
+				//		$this->manage_model->Organization_array['oid']=$_GET['orgid'];
+				//	}
+										
+					$data['view_mode'] = 'Update';//next mode
+					$this->manage_model->insertForms();	   
+					
+				} else if((isset($_POST['submit']) && $_POST['submit'] == 'Update') && !isset($_GET['update'])){
+					/*
+					explode names and insert all fields
+					*/
+					$this->manage_model->Web_Account_array['oid']=$_GET['editid'];
+					//$this->manage_model->Organization_array['oid']=$_GET['orgid'];
+					//if(isset($_GET['websiteid'])){
+					//	$this->manage_model->Website_array['oid']=$_GET['websiteid'];
+					//}
+					
+					$data['view_mode'] = 'Update';//next mode
+					$this->manage_model->updateForms();	   
+					
+				}else{
+					$this->manage_model->Web_Account_array['oid']=$_GET['editid'];
+				/*	$this->manage_model->Organization_array['oid']=$_GET['orgid'];
+					if(isset($_GET['websiteid'])){
+						$this->manage_model->Website_array['oid']=$_GET['websiteid'];
+					}
+				*/	
+					$data['view_mode'] = 'Update';//next mode
+				}	
+				
+				$this->manage_model->filledForms('Web_Account');
+			 	$this->link_model->Web_AccountLinks($this->manage_model->Web_Account_array['oid']);
+				$data['links'] = $this->link_model->links;
+				$arrays = $this->link_model->getNameAndId('Website',$this->manage_model->Web_Account_array['oid']);
+				$data['link_to_array'] = $arrays[0];
+				$data['removal_array'] = $arrays[1];
+				break;
+			case 'login_details':
+				echo "i equals 1";
+				break;
+		}
+	
+	
+	$data['forms'] = $this->manage_model->getForms();
+
+	$type = ucfirst($_GET['field']).'_array';
+
+	$data['add_in'] ='';
+	//Org ID
+	if(isset($_GET['orgid'])){
+	   $data['add_in'] = '&orgid='.$_GET['orgid'];
+	}else if(isset($this->manage_model->Organization_array['oid']) && $this->manage_model->Organization_array['oid'] !== ''){
+	   $data['add_in'] = '&orgid='.$this->manage_model->Organization_array['oid'];	
+	}
+
+
+	//Org ID
+	if(isset($_GET['locationid'])){
+	   $data['add_in'].= '&locationid='.$_GET['locationid'];
+	}else if(isset($this->manage_model->Location_array['oid']) && $this->manage_model->Location_array['oid'] !== ''){
+	   $data['add_in'].= '&locationid='.$this->manage_model->Location_array['oid'];	
+	}
+
+
+
+	//Website ID
+	if(isset($_GET['websiteid'])){
+	   $data['add_in'].= '&websiteid='.$_GET['websiteid'];
+	}else if(isset($this->manage_model->Website_array['oid']) && $this->manage_model->Website_array['oid'] !== ''){
+	   $data['add_in'].= '&websiteid='.$this->manage_model->Website_array['oid'];	
+	}
+
+
+
+	//Edit ID
+	if(isset($_GET['editid'])){
+	   $data['add_in'].= '&editid='.$_GET['editid'];
+	}else if(isset($this->manage_model->$type['oid']) && $this->manage_model->$type['oid'] !== ''){
+	   $data['add_in'].= '&editid='.$this->manage_model->$type['oid'];
+	}
+
+
+	
+	
+	
+	
+	
+		$this->addView('header',$data);	
+		$this->addView('manage',$data);
+		$this->addView('list',$data);	
+		$this->addView('footer',$data);
+	}
 }
-
-
-?>

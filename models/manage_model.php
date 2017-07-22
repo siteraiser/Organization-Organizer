@@ -114,10 +114,10 @@ class manage_model extends requestHandler{
 			$properties_array[]='n.'.$key;
 		}
 		$insert=implode(',',$properties_array);		
-		
+		//HERE!
 		$query="
-			MATCH (n:$type{oid:{id}}) RETURN $insert";
-			$result = $this->client->run($query,['id'=>$id]);
+			MATCH (n:$type{oid:'$id'}) RETURN $insert";
+			$result = $this->client->run($query);
 		
 			foreach ($result->getRecords() AS $record) {
 				
@@ -436,81 +436,4 @@ class manage_model extends requestHandler{
 }
 
 
-/*
-No good:
-
-
-
-
-
-
-
-
-
-MATCH (loc:Location {oid:'1'})
-		OPTIONAL MATCH (loc:Location)<-[*..3]-(w:Website)-[:Account_Of]-(a:Web_Account)
-		
-		WITH loc,a
-		
-		OPTIONAL MATCH (a)-[*..3]->(l2:Location)
-		WHERE NOT l2.oid = '1'
-		WITH loc,a, l2 AS locs 
-		
-		OPTIONAL MATCH (a)-[*..3]->(o2:Organization)
-
-		WITH loc,CASE WHEN (COUNT(locs) + COUNT(o2)) > 0 THEN NULL ELSE a END AS a		
-		
-		OPTIONAL MATCH (w:Website)-[:Website_Of]->(loc)
-		WITH loc,a,w
-
-		OPTIONAL MATCH (p:Person)-[:Works_For]->(loc)
-		WITH loc,a,w,p
-
-		RETURN loc,a,w,p
-
-
-MATCH (loc:Location {oid:'1'})
-		OPTIONAL MATCH (loc:Location)<-[*..3]-(w:Website)-[:Account_Of]-(a:Web_Account)
-		
-		WITH loc,a
-		
-		OPTIONAL MATCH (a)-[*..3]->(l2:Location)
-		WHERE NOT l2.oid = '1'
-		WITH loc, l2 AS locs 
-		
-		OPTIONAL MATCH (a)-[*..3]->(o2:Organization)
-
-		WITH loc,CASE WHEN (COUNT(locs) + COUNT(o2)) > 0 THEN NULL ELSE a END AS a		
-		
-		OPTIONAL MATCH (w:Website)-[:Website_Of]->(loc)
-		WITH loc,a,w
-
-		OPTIONAL MATCH (p:Person)-[:Works_For]->(loc)
-		WITH loc,a,w,p
-
-		RETURN loc,a,w,p
-
-
-MATCH (loc:Location {oid:'1'})
-		OPTIONAL MATCH (loc:Location)<-[*..3]-(ws:Website)-[:Account_Of]-(a:Web_Account)
-		
-		WITH loc,a
-		
-		OPTIONAL MATCH (a)-[*..3]->(l2:Location)
-		WHERE NOT l2.oid = '1'
-		WITH loc, l2 AS locs 
-		
-		OPTIONAL MATCH (a)-[:Account_Of]-(ws)-[*..3]->(o2:Organization)
-		WHERE NOT (a)-[:Account_Of]-(ws)-[:Location_Of]-(loc)
-		WITH loc,CASE WHEN (COUNT(locs) + COUNT(o2)) > 0 THEN NULL ELSE a END AS a		
-		
-		OPTIONAL MATCH (w:Website)-[:Website_Of]->(loc)
-		WITH loc,a,w
-
-		OPTIONAL MATCH (p:Person)-[:Works_For]->(loc)
-		WITH loc,a,w,p
-
-		RETURN loc,a,w,pMATCH (loc:Location {oid:'1'})
-		
-*/
 ?>
