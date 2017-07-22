@@ -8,7 +8,7 @@ There is a labelling class (https://github.com/siteraiser/Organization-Organizer
 The organizer is currently designed to only allow local and local network access (and it controlled here: https://github.com/siteraiser/Organization-Organizer/blob/master/classes/requestHandler.php). It hasn't been fully designed and tested for security yet. It is meant for storing account details so make sure you know what you are doing before using it over the internet!
 
 To setup: 
-Add files to htdocs, setup a Neo4j database and go to localhost or the IP address you've provided in the request handler for local network access. The required vendor files are included, and have been tested on Neo4j version 3.2.1.
+Add files to htdocs, setup a Neo4j database and go to localhost or the IP address you've provided in the request handler for local network access. Run composer for the latest php connector which can be found here: https://github.com/graphaware/neo4j-php-client/ and have been tested on Neo4j version 3.2.1.
 
 
 
