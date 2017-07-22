@@ -1,7 +1,7 @@
 <?php 
  //   $startTime = microtime(true);  
     // Your content to test
-error_reporting(0);
+//error_reporting(0);
 function class_loader($class){
 require('classes/' . $class . '.php');//---- might be a badly named model if gives error here   
 }

@@ -28,7 +28,7 @@ class Node extends MapAccess implements NodeInterface
     /**
      * @var array
      */
-    public $properties = [];
+    protected $properties = [];
 
     public function __construct($id, array $labels, array $properties)
     {

@@ -38,7 +38,9 @@ class search extends requestHandler{
 	
 	
 	if(!empty($_GET['search_property'])){ // maybe move down to get records area (even add to query?)
+		
 		$data['count'] = $this->search_model->countRecords($label,$search,$_GET['search_property']);
+		echo 'here';
 	}
 	
 	$this->search_model->getProperties($label);

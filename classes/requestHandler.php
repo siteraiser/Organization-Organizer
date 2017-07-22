@@ -103,7 +103,7 @@ abstract class helpers{
 			
 			
 			
-			$this->client = ClientBuilder::create()->addConnection('default', 'http://neo4j:admin@localhost:7474')->build(); // Example for HTTP connection configuration (port is optional)	
+			$this->client =$client = ClientBuilder::create()->addConnection('default', 'http://neo4j:admin@localhost:7474')->build(); // Example for HTTP connection configuration (port is optional)	
 			
 			$this->$name->client=$this->client;
 			

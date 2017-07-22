@@ -116,8 +116,8 @@ class manage_model extends requestHandler{
 		$insert=implode(',',$properties_array);		
 		
 		$query="
-			MATCH (n:$type{oid:'$id'}) RETURN $insert";
-			$result = $this->client->run($query);
+			MATCH (n:$type{oid:{id}}) RETURN $insert";
+			$result = $this->client->run($query,['id'=>$id]);
 		
 			foreach ($result->getRecords() AS $record) {
 				
