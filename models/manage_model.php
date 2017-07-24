@@ -33,7 +33,7 @@ class manage_model extends requestHandler{
 		foreach ($result->getRecords() AS $record) {
 			echo '<br>'.$label.' highest id found: '. $id = $record->value('ord');
 		}	
-		return ($id + 1);
+		return strval($id + 1);
 	}
 	
 	
@@ -114,10 +114,10 @@ class manage_model extends requestHandler{
 			$properties_array[]='n.'.$key;
 		}
 		$insert=implode(',',$properties_array);		
-		//HERE!
+		
 		$query="
-			MATCH (n:$type{oid:'$id'}) RETURN $insert";
-			$result = $this->client->run($query);
+			MATCH (n:$type{oid:{id}}) RETURN $insert";
+			$result = $this->client->run($query,["id"=>$id]);
 		
 			foreach ($result->getRecords() AS $record) {
 				
