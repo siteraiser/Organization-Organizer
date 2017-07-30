@@ -1,5 +1,9 @@
 <?php 
 class manage extends requestHandler{
+	public function __construct() {		
+		parent::client(30,'masterdatagood'); 
+    }	
+	
 	public function index(){
 		$data['title']="Home";
 		require_once $this->doc_root().'classes/labels.php';
@@ -17,6 +21,7 @@ class manage extends requestHandler{
 		
 	}
 	public function add(){
+		
 		$data['title']="Home";
 		require_once $this->doc_root().'classes/labels.php';
 
@@ -121,7 +126,33 @@ class manage extends requestHandler{
 
 		switch (strtolower($_GET['field'])) {
 			case 'organization':
+			//Un-Linking
+				if($_POST['submit']=='Website-Remove-Link'){
+					$this->manage_model->removeLink($_POST['unlink-website'],$_GET['editid'],'Website','Organization','Website_Of');//createLink($aid,$bid,$labela,$labelb,$link_label){	//a->b
+				}//skips to the edit part :D when done
+
+
+			//Linking
+				if($_POST['submit']=='Website-Add-Link'){
+					$this->manage_model->createLink($_POST['link-website'],$_GET['editid'],'Website','Organization','Website_Of');//createLink($aid,$bid,$labela,$labelb,$link_label){	//a->b
+				}//skips to the edit part :D when done
 			
+			
+			//Un-Linking
+				if($_POST['submit']=='Person-Remove-Link'){
+					$this->manage_model->removeLink($_POST['unlink-person'],$_GET['editid'],'Person','Organization','Works_For');//createLink($aid,$bid,$labela,$labelb,$link_label){	//a->b
+				}//skips to the edit part :D when done
+
+
+			//Linking
+				if($_POST['submit']=='Person-Add-Link'){
+					$this->manage_model->createLink($_POST['link-person'],$_GET['editid'],'Person','Organization','Works_For');//createLink($aid,$bid,$labela,$labelb,$link_label){	//a->b
+				}//skips to the edit part :D when done		
+			
+			
+			
+
+			//Deletion
 				if(isset($_POST['submit']) && $_POST['submit'] == 'Delete' && !isset($_GET['update'])){
 
 					if(isset($_GET['orgid'])){
@@ -161,11 +192,45 @@ class manage extends requestHandler{
 				$data['links'] = $this->link_model->links;
 				$data['add_links'] = $this->link_model->add_links;
 			 // $this->load('Organization');	  
+			 
+			 	//Get node linking data / links -- Gets websites
+				$arrays = $this->link_model->getNameAndIdOrganization($this->manage_model->Organization_array['oid']);
+				$data['link_to_array'] = $this->link_model->link_to_array;
+				$data['removal_array'] = $this->link_model->removal_array;
+				
 			   
 				break;
 				
 				
 			case 'location':
+				//Un-Linking - website
+				if($_POST['submit']=='Website-Remove-Link'){
+					$this->manage_model->removeLink($_POST['unlink-website'],$_GET['editid'],'Website','Location','Website_Of');//createLink($aid,$bid,$labela,$labelb,$link_label){	//a->b
+				}//skips to the edit part :D when done
+
+
+				//Linking
+				if($_POST['submit']=='Website-Add-Link'){
+					$this->manage_model->createLink($_POST['link-website'],$_GET['editid'],'Website','Location','Website_Of');//createLink($aid,$bid,$labela,$labelb,$link_label){	//a->b
+				}//skips to the edit part :D when done
+			
+			
+			//Un-Linking - person
+				if($_POST['submit']=='Person-Remove-Link'){
+					$this->manage_model->removeLink($_POST['unlink-person'],$_GET['editid'],'Person','Location','Works_For');//createLink($aid,$bid,$labela,$labelb,$link_label){	//a->b
+				}//skips to the edit part :D when done
+
+
+			//Linking
+				if($_POST['submit']=='Person-Add-Link'){
+					$this->manage_model->createLink($_POST['link-person'],$_GET['editid'],'Person','Location','Works_For');//createLink($aid,$bid,$labela,$labelb,$link_label){	//a->b
+				}//skips to the edit part :D when done		
+			
+			
+			
+			
+			
+			//Deletion
 				if(isset($_POST['submit']) && $_POST['submit'] == 'Delete' && !isset($_GET['update'])){
 
 					if(isset($_GET['orgid'])){
@@ -177,7 +242,7 @@ class manage extends requestHandler{
 
 					
 				}
-			
+			//Adding
 				if(isset($_POST['submit']) && $_POST['submit'] == 'Add' && !isset($_GET['update'])){
 					/*
 					explode names and insert all fields
@@ -190,7 +255,7 @@ class manage extends requestHandler{
 					
 				} else if((isset($_POST['submit']) && $_POST['submit'] == 'Update') && !isset($_GET['update'])){
 					/*
-					explode names and insert all fields
+			Update -- explode names and insert all fields
 					*/
 				//	$this->manage_model->Organization_array['oid']=$_GET['orgid'];
 					$this->manage_model->Location_array['oid']=$_GET['editid'];
@@ -199,6 +264,7 @@ class manage extends requestHandler{
 					$this->manage_model->updateForms();	   					
 					
 				}else{
+			//show
 					$this->manage_model->Organization_array['oid']=$_GET['orgid'];
 					$this->manage_model->Location_array['oid']=$_GET['editid'];
 					$data['view_mode'] = 'Update';//next mode		 
@@ -208,19 +274,24 @@ class manage extends requestHandler{
 				$this->link_model->LocationLinks($this->manage_model->Location_array['oid']);
 				$data['links'] = $this->link_model->links;
 			  	$data['add_links'] = $this->link_model->add_links;
-			   
+				
+				//Get node linking data / links -- Gets websites
+				$arrays = $this->link_model->getNameAndIdLocation($this->manage_model->Location_array['oid']);
+				$data['link_to_array'] = $this->link_model->link_to_array;
+				$data['removal_array'] = $this->link_model->removal_array;
+			
 				break;		
 
 				
 			case 'website':
 				//Linking
-				if($_POST['submit']=='Remove-Link'){
+				if($_POST['submit']=='Web_Account-Remove-Link'){
 					$this->manage_model->removeLink($_POST['unlink-web_account'],$_GET['editid'],'Web_Account','Website','Account_Of');//createLink($aid,$bid,$labela,$labelb,$link_label){	//a->b
 				}//skips to the edit part :D when done
 
 
 				//Linking
-				if($_POST['submit']=='Add-Link'){
+				if($_POST['submit']=='Web_Account-Add-Link'){
 					$this->manage_model->createLink($_POST['link-web_account'],$_GET['editid'],'Web_Account','Website','Account_Of');//createLink($aid,$bid,$labela,$labelb,$link_label){	//a->b
 				}//skips to the edit part :D when done
 
@@ -275,9 +346,11 @@ class manage extends requestHandler{
 			   	$this->link_model->WebsiteLinks($this->manage_model->Website_array['oid']);
 				$data['links'] = $this->link_model->links;
 				$data['add_links'] = $this->link_model->add_links;
-				$arrays = $this->link_model->getNameAndId('Web_Account',$this->manage_model->Website_array['oid']);
-				$data['link_to_array'] = $arrays[0];
-				$data['removal_array'] = $arrays[1];
+				
+				//Gets web_accounts
+				$arrays = $this->link_model->getNameAndIdWebsite($this->manage_model->Website_array['oid']);
+				$data['link_to_array'] = $this->link_model->link_to_array;
+				$data['removal_array'] = $this->link_model->removal_array;
 				break;
 				
 			case 'person':
@@ -328,11 +401,11 @@ class manage extends requestHandler{
 				
 			case 'web_account':
 				
-				if($_POST['submit']=='Remove-Link'){
+				if($_POST['submit']=='Website-Remove-Link'){
 					$this->manage_model->removeLink($_GET['editid'],$_POST['unlink-website'],'Web_Account','Website','Account_Of');//createLink($aid,$bid,$labela,$labelb,$link_label){	//a->b
 				}//skips to the edit part :D when done
 				
-				if($_POST['submit']=='Add-Link'){
+				if($_POST['submit']=='Website-Add-Link'){
 					$this->manage_model->createLink($_GET['editid'],$_POST['link-website'],'Web_Account','Website','Account_Of');//createLink($aid,$bid,$labela,$labelb,$link_label){	//a->b
 				}//skips to the edit part :D when done
 			
@@ -390,9 +463,11 @@ class manage extends requestHandler{
 				$this->manage_model->filledForms('Web_Account');
 			 	$this->link_model->Web_AccountLinks($this->manage_model->Web_Account_array['oid']);
 				$data['links'] = $this->link_model->links;
-				$arrays = $this->link_model->getNameAndId('Website',$this->manage_model->Web_Account_array['oid']);
-				$data['link_to_array'] = $arrays[0];
-				$data['removal_array'] = $arrays[1];
+				
+				//Gets websites
+				$arrays = $this->link_model->getNameAndIdWeb_Account($this->manage_model->Web_Account_array['oid']);
+				$data['link_to_array'] = $this->link_model->link_to_array;
+				$data['removal_array'] = $this->link_model->removal_array;
 				break;
 			case 'login_details':
 				echo "i equals 1";

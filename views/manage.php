@@ -22,69 +22,148 @@ foreach($forms AS $type => $form){
 
 <br>
 
-<?php if( strtolower($_GET['field']) == 'web_account' && $view_mode == 'Update'){ ?>
+
+<?php 
+
+
+function addLink($type,$link_to_array){
+	
+	$html = '<select name="link-'.strtolower($type).'">
+	 <option value=""></option>';
+	  foreach($link_to_array[$type] AS $value){
+		$html.= '<option value="'.$value['oid'].'">'.$value['name'].'</option>';
+	 }
+	 
+	 $html.= '</select>
+	<button type="submit" name="submit" value="'.$type.'-Add-Link">Add-Link</button>';
+	return $html;
+}
+
+
+function removeLink($type,$removal_array){
+
+	$html = '<select name="unlink-'.strtolower($type).'">
+	 <option value=""></option>';
+	  foreach($removal_array[$type] AS $value){
+		$html.= '<option value="'.$value['oid'].'">'.$value['name'].'</option>';
+	 }
+	 
+	 $html.= '</select>
+	<button type="submit" name="submit" value="'.$type.'-Remove-Link">Remove-Link</button>';
+	return $html;
+}
+
+
+/*******
+ORGANIZATION
+********/
+
+
+if( strtolower($_GET['field']) == 'organization' && $view_mode == 'Update'){ ?>
 Link a Website
-<select name="link-website">
- <option value=""></option>
- <?php
-
- foreach($link_to_array['Website'] AS $value){
-	echo '<option value="'.$value['oid'].'">'.$value['name'].'</option>';
- }
-
+<?php
+ echo addLink('Website',$link_to_array);
 ?>
- </select>
-<button type="submit" name="submit" value="Add-Link">Add-Link</button>
-
-
 <br>
 Unlink a Website
-<select name="unlink-website">
- <option value=""></option>
- <?php
-
- foreach($removal_array['Website'] AS $value){
-	echo '<option value="'.$value['oid'].'">'.$value['name'].'</option>';
- }
-
+<?php
+ echo removeLink('Website',$removal_array);
 ?>
- </select>
-<button type="submit" name="submit" value="Remove-Link">Remove-Link</button>
-
-
-
-<?php } ?>
-
-<?php if( strtolower($_GET['field']) == 'website' && $view_mode == 'Update'){ ?>
-
-Link Web Account
- <select name="link-web_account">
- <option value=""></option>
- <?php
-
- foreach($link_to_array['Web_Account'] AS $value){
-	echo '<option value="'.$value['oid'].'">'.$value['name'].'</option>';
- }
- 
-?>
-</select> 
-<button type="submit" name="submit" value="Add-Link">Add-Link</button>
 
 <br>
-Unlink Web Account
- <select name="unlink-web_account">
- <option value=""></option>
- <?php
 
- foreach($removal_array['Web_Account'] AS $value){
-	echo '<option value="'.$value['oid'].'">'.$value['name'].'</option>';
- }
+Link a Person
+<?php
+ echo addLink('Person',$link_to_array);
+?>
+<br>
+Unlink a Person
+<?php
+ echo removeLink('Person',$removal_array);
+   
+ } ?>
+
+
+
+
+<?php 
+/*******
+WEB ACCOUNT
+********/
+
+if( strtolower($_GET['field']) == 'web_account' && $view_mode == 'Update'){ ?>
+Link a Website
+<?php
+ echo addLink('Website',$link_to_array);
+?>
+
+<br>
+
+Unlink a Website
+<?php
+ echo removeLink('Website',$removal_array);
+
+ } ?>
+
+
+
+
+<?php 
+/*******
+WEBSITE
+********/
+ if( strtolower($_GET['field']) == 'website' && $view_mode == 'Update'){ ?>
+
+Link Web Account
+<?php
+ echo addLink('Web_Account',$link_to_array);
+?>
+
+<br>
+
+Unlink Web Account
+ <?php
+ echo removeLink('Web_Account',$removal_array);
+
+ } ?>
+
+
+
+
+<?php 
+/*******
+LOCATION
+********/
+ if( strtolower($_GET['field']) == 'location' && $view_mode == 'Update'){ ?>
+Link a Website
+
+<?php
+ echo addLink('Website',$link_to_array);
+?>
+<br>
+Unlink a Website
+<?php
+ echo removeLink('Website',$removal_array);
  
 ?>
-</select> 
-<button type="submit" name="submit" value="Remove-Link">Remove-Link</button>
 
-<?php } ?>
+<br>
+
+Link a Person
+<?php
+ echo addLink('Person',$link_to_array);
+?>
+<br>
+Unlink a Person
+<?php
+ echo removeLink('Person',$removal_array); 
+ 
+ } ?>
+
+
+
+
+
 
 <hr>
 <?php if($view_mode != 'Add'){ ?>

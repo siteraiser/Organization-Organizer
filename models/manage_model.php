@@ -10,6 +10,9 @@
 
 class manage_model extends requestHandler{
 	
+	
+	
+	
 	public $labels =""; 
 	public $Organization_array=[];
 	public $Location_array=[];
@@ -23,17 +26,39 @@ class manage_model extends requestHandler{
 		$this->labels=$Labels;
 	}
 
-	
-	
-	public function createID($label = 'Organization'){			
+	function idIsTaken($id,$label){
+      /*  $query = "MATCH (n:$label{oid:{id}}) RETURN count(n.oid) as count";
+        $result = $this->client->run($query,['id'=>$id]);
+		$record = $result->getRecord();
+		echo '<pre>';
+			var_dump($record);
+			echo '</pre>';
+        if($record->value('count')!=0 ){
+		echo 'count:'.$record->value('count');
+            return true;
+        }else{
+			echo 'count:'.$record->value('count');
+            return false;
+        }
+		*/
+    }	
 
+	public function createID($label = 'Organization'){			
+	/*
+		 do {
+          $id = UUID::v4();
+        } while ($this->idIsTaken($id,$label));
+		return $id;
+		*/
 		$query = "MATCH (n:$label) RETURN n,toFloat(n.oid) AS ord ORDER BY ord DESC LIMIT 1";
 		$result = $this->client->run($query);
 		$id=-1;
 		foreach ($result->getRecords() AS $record) {
-			echo '<br>'.$label.' highest id found: '. $id = $record->value('ord');
+			echo '<br>'.$label.' highest id found: '. $id =$record->value('ord');
 		}	
-		return ($id + 1);
+		return strval($id + 1);
+	
+		
 	}
 	
 	
@@ -116,8 +141,8 @@ class manage_model extends requestHandler{
 		$insert=implode(',',$properties_array);		
 		//HERE!
 		$query="
-			MATCH (n:$type{oid:'$id'}) RETURN $insert";
-			$result = $this->client->run($query);
+			MATCH (n:$type{oid:{id}}) RETURN $insert";
+			$result = $this->client->run($query,["id"=>$id]);
 		
 			foreach ($result->getRecords() AS $record) {
 				
@@ -374,11 +399,15 @@ class manage_model extends requestHandler{
 		OPTIONAL MATCH (lw:Website)-[:Website_Of]->(l)
 		WITH org,a,w,l,lw
 
-		OPTIONAL MATCH (p:Person)-[:Works_For]->(org)
+		OPTIONAL MATCH (org)<-[*..3]-(p:Person)
 		WITH org,a,w,l,lw,p
-		OPTIONAL MATCH (pl:Person)-[:Works_For]->(l)
-		WITH org,a,w,l,lw,p,pl
-		DETACH DELETE org,a,w,l,lw,p,pl";
+        OPTIONAL MATCH (p)-[*..3]->(o2:Organization)
+        WHERE NOT o2.oid = '$id'
+        WITH org,a,w,l,lw,CASE WHEN COUNT(o2) > 0 THEN NULL ELSE p END AS p
+
+		WITH org,a,w,l,lw,p
+		DETACH DELETE org,a,w,l,lw,p
+		";
 		$result = $this->client->run($query);
 	}	  
 	
@@ -402,8 +431,18 @@ class manage_model extends requestHandler{
 		OPTIONAL MATCH (w:Website)-[:Website_Of]->(loc)
 		WITH loc,a,w
 
-		OPTIONAL MATCH (p:Person)-[:Works_For]->(loc)
+		OPTIONAL MATCH (loc)<-[:Works_For]-(p:Person)		
 		WITH loc,a,w,p
+		
+		
+		OPTIONAL MATCH (p)-[:Works_For]->(orgs:Organization)
+		WITH loc,a,w,p,orgs
+
+		OPTIONAL MATCH (p)-[:Works_For]->(locs:Location)
+		WHERE NOT locs.oid = '$id'
+		
+		WITH loc,a,w,CASE WHEN (COUNT(locs)  + COUNT(orgs)) > 0 THEN NULL ELSE p END AS p		
+		
 
 		DETACH DELETE loc,a,w,p
 		";
@@ -434,6 +473,80 @@ class manage_model extends requestHandler{
 		$result = $this->client->run($query);
 	}	 
 }
+/*
+ Old
+	public function deleteOrganization($id){
+		//Only deletes accounts they aren't attached to another organization (or another orgs location)
+		$query = "MATCH (org:Organization {oid:'$id'})
+		OPTIONAL MATCH (org:Organization)<-[*..3]-(w:Website)-[:Account_Of]-(a:Web_Account)
+		WITH org,a
+		OPTIONAL MATCH (a)-[*..3]->(o2:Organization)
+		WHERE NOT o2.oid = '$id'
+		WITH org,CASE WHEN COUNT(o2) > 0 THEN NULL ELSE a END AS a
+
+		OPTIONAL MATCH (w:Website)-[:Website_Of]->(org)
+		WITH org,a,w
+
+		OPTIONAL MATCH (l:Location)-[:Location_Of]->(org)
+		WITH org,a,w,l
+
+		OPTIONAL MATCH (lw:Website)-[:Website_Of]->(l)
+		WITH org,a,w,l,lw
+
+		OPTIONAL MATCH (p:Person)-[:Works_For]->(org)
+		WITH org,a,w,l,lw,p
+		OPTIONAL MATCH (pl:Person)-[:Works_For]->(l)
+		WITH org,a,w,l,lw,p,pl
+		DETACH DELETE org,a,w,l,lw,p,pl";
+		$result = $this->client->run($query);
+	}	  
+
+
+	
+	
+	
+	
+	
+	
+	
+MATCH (loc:Location {oid:'4'})
+		OPTIONAL MATCH (loc:Location)<-[:Website_Of]-(ws:Website)-[:Account_Of]-(a:Web_Account)
+		
+		WITH loc,a
+		
+		OPTIONAL MATCH (a)-[:Account_Of]->(:Website)-[:Website_Of]->(l2:Location)
+		WHERE NOT l2.oid = '4'
+		WITH loc,a,l2 AS locs 		
+
+		WITH loc,a,locs
+		OPTIONAL MATCH (a)-[:Account_Of]-(:Website)-[:Website_Of]->(orgs2:Organization) 
+				
+		WITH loc,CASE WHEN (COUNT(locs)  + COUNT(orgs2)) > 0 THEN NULL ELSE a END AS a		
+		
+		OPTIONAL MATCH (w:Website)-[:Website_Of]->(loc)
+		WITH loc,a,w
+
+		OPTIONAL MATCH (loc)<-[:Works_For]-(p:Person)		
+		WITH loc,a,w,p
+		
+		
+		OPTIONAL MATCH (p)-[:Works_For]->(orgs:Organization)
+		WITH loc,a,w,p,orgs
+
+		OPTIONAL MATCH (p)-[:Works_For]->(locs:Location)
+		WHERE NOT locs.oid = '4'
+		
+		WITH loc,a,w,CASE WHEN (COUNT(locs)  + COUNT(orgs)) > 0 THEN NULL ELSE p END AS p		
+		
+
+		RETURN loc,a,w,p
+	
+	
+
+*/
+
+
+
 
 
 ?>

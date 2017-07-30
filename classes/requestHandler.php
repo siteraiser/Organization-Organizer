@@ -72,17 +72,21 @@ abstract class helpers{
 		return $controller_method;
 	}
 	
-	public function get_include_contents($filename,$data) {
+	public function get_include_contents($filename,$data,$instant_view=false) {
 		foreach($data as $key => $value){
 			$$key = $value;
 		}
 		if (is_file('views/'.$filename.'.php')) {
-			ob_start();
+			if($instant_view === false){ob_start();}
 	
 			include 'views/'.$filename.'.php';
-			return ob_get_clean();
+			
+			if($instant_view === false){	return ob_get_clean(); }
+			
+			
+		}else{
+			echo $filename . ' is not a valid file!';			
 		}
-		echo $filename . ' is not a valid file!';
 		return false;
 	}	
 	
@@ -92,6 +96,84 @@ abstract class helpers{
 		$this->output.=$this->get_include_contents($view,$data);		
 	}	
 	
+	
+	
+	
+	/*
+	
+	public function loadPDO($path = 'db.inc.php') {
+
+			//add pdo 
+			include('secure/'.$path);//include once fails due to unsetting of dynpages controller				
+			
+			if(!is_object($this->pdo)){
+				try {
+					$this->pdo = new PDO('mysql:host=localhost;dbname='.$database, $username, $password);    					
+				} catch (PDOException $e) {
+					print "Error!: " . $e->getMessage() . "<br/>";
+					return'';
+					//die();
+				} 		
+				
+			}else{
+				return'';
+			}
+		return $this->pdo;		
+	}	
+	
+	public function loadNEO4J($timeout = 15) {
+		
+	/*	$options = [
+			CURLOPT_CONNECTTIMEOUT => $timeout, // The number of seconds to wait while trying to connect.
+			CURLOPT_SSL_VERIFYPEER => false // Stop cURL from verifying the peer's certificate
+		];
+		$httpClient = new Client(null, null, $options);
+
+		$config = \GraphAware\Neo4j\Client\HttpDriver\Configuration::create($httpClient);
+	*/	
+		
+		
+	//	if(!is_object($this->client)){			
+		
+		/*$this->client = ClientBuilder::create()
+			->addConnection('default', 'http://neo4j:password@localhost:7474', $config)
+			->build();
+		
+			$this->client =$client = ClientBuilder::create()->addConnection('default', 'http://neo4j:admin@localhost:7474')->setDefaultTimeout($timeout)->build(); // Example for HTTP connection configuration (port is optional)	
+		}
+	//	return $this->client;				
+	}	*/
+
+	
+	
+	public function loadModel($path,$args=[]) {
+		$ep = explode('/',$path);
+		$name =	end($ep);
+		$loadname = 'models/'.$path.'.php';
+		try {
+
+		if (!file_exists($loadname ))
+		  throw new Exception ($loadname.' does not exist');
+		else		
+		  	include_once($loadname);
+			$this->$name = new $name($args);	
+			$this->add_props($this->$name);		
+		}
+		catch(Exception $e) {    
+		  echo "Message : " . $e->getMessage();
+		  echo "Code : " . $e->getCode();
+		}
+		
+	
+	}	
+	
+	
+	
+		
+	
+	
+	
+	/*
 	public function loadModel($path,$args=[]) {
 		$var=explode('/',$path);
 		$name =	end($var);
@@ -101,15 +183,17 @@ abstract class helpers{
 			$this->$name = new $name($args);		
 
 			
-			
+			if(!is_object($this->client)){
 			
 			$this->client =$client = ClientBuilder::create()->addConnection('default', 'http://neo4j:admin@localhost:7474')->build(); // Example for HTTP connection configuration (port is optional)	
-			
+			}
 			$this->$name->client=$this->client;
 			
-			/* No MySql for this project... Add it back here and the variable is in requestHandler
+
 			//add pdo 
 			include_once('secure/db.inc.php');		
+			if(in_array)crawl
+			
 			if(!is_object($this->pdo)){
 				try {
 					$this->pdo = new PDO('mysql:host=localhost;dbname='.$database, $username, $password);    					
@@ -118,12 +202,13 @@ abstract class helpers{
 					die();
 				} 				
 			}
-			$this->$name->pdo=$this->pdo;	
-
-			*/			
+			$this->$name->pdo=$this->pdo;		
 			$this->add_props($this->$name);			
 		}
 	}	
+	
+	*/
+	
 	public function add_props($object){
 	//controller or model
 		$object->url_segments=$this->url_segments;	
@@ -131,6 +216,8 @@ abstract class helpers{
 		$object->path=$this->path;	
 		$object->req_url=$this->req_url;
 		$object->base_url=$this->base_url;
+		$object->pdo=self::pdo(); 
+		$object->client=self::client(); 
 	}
 	public function doc_root() {
 		return $this->doc_root;
@@ -183,6 +270,34 @@ abstract class helpers{
 		return $ret;
 	}
 	
+	private static $connections = array();
+  	public static $pdo=0;	
+	public static $client=0; // neo4j	
+	
+	public static function client($timeout = 30,$password=''){	
+		if(!isset (self::$connections['neo4j'])){
+			self::$connections['neo4j'] = ClientBuilder::create()->addConnection('default', 'http://neo4j:'.$password.'@localhost:7474')->setDefaultTimeout($timeout)->build();// ClientBuilder::create()->addConnection('default', 'bolt://neo4j:'.$password.'@localhost:7687')
+		}
+		return self::$connections['neo4j'];
+	}
+	
+	public static function pdo($path = ''){//	db.inc.php 
+		if(!isset (self::$connections['pdo'])){ 
+			//add pdo 
+			include('secure/'.$path);//include once fails due to unsetting of dynpages controller	
+			try{
+				self::$connections['pdo'] =  new PDO('mysql:host=localhost;dbname='.$database, $username, $password);    					
+			} catch (PDOException $e) {
+				print "Error!: " . $e->getMessage() . "<br/>";
+				return'';
+				//die();
+			} 			
+
+		}
+		if(isset (self::$connections['pdo'])){ 
+			return self::$connections['pdo'];	
+		}else{return 0;}
+	}
 }
 
 class requestHandler extends helpers{
@@ -192,10 +307,7 @@ class requestHandler extends helpers{
 	public $req_url;
 	public $path;	
 	public $controllername;
-	//public $pdo;	
-	public $client; // neo4j	
 	public $doc_root;
-	
 	
 	public function getContent(){
 		//Determine if local or on local network, otherwise exit program
