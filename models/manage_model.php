@@ -401,11 +401,10 @@ class manage_model extends requestHandler{
 
 		OPTIONAL MATCH (org)<-[*..3]-(p:Person)
 		WITH org,a,w,l,lw,p
-        OPTIONAL MATCH (p)-[*..3]->(o2:Organization)
-        WHERE NOT o2.oid = '$id'
-        WITH org,a,w,l,lw,CASE WHEN COUNT(o2) > 0 THEN NULL ELSE p END AS p
-
-		WITH org,a,w,l,lw,p
+     		OPTIONAL MATCH (p)-[*..3]->(o2:Organization)
+   		WHERE NOT o2.oid = '$id'
+      		WITH org,a,w,l,lw,CASE WHEN COUNT(o2) > 0 THEN NULL ELSE p END AS p
+		
 		DETACH DELETE org,a,w,l,lw,p
 		";
 		$result = $this->client->run($query);
