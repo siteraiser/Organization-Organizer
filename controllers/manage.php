@@ -1,7 +1,7 @@
 <?php 
 class manage extends requestHandler{
 	public function __construct() {		
-		parent::client(30,'masterdatagood'); 
+		parent::client(30,'Password'); 
     }	
 	
 	public function index(){
