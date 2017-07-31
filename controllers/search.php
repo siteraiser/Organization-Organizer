@@ -1,8 +1,8 @@
 <?php 
 class search extends requestHandler{
 	public function __construct() {		
-		parent::client(30,'masterdatagood'); 
-       // __construct(["neo4jtimeout"=>30,"neo4jpassword"=>'masterdatagood']);		
+		parent::client(30,'Password'); 
+       		
     }	
 
 
