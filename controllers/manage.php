@@ -478,7 +478,7 @@ class manage extends requestHandler{
 	$data['forms'] = $this->manage_model->getForms();
 
 	$type = $_GET['field'];
-	$type_parts = explode("_",$type,2);
+	$type_parts = explode("_",$type);
 	foreach($type_parts AS &$value){
 		$value = ucfirst($value);
 	}
