@@ -477,7 +477,13 @@ class manage extends requestHandler{
 	
 	$data['forms'] = $this->manage_model->getForms();
 
-	$type = ucfirst($_GET['field']).'_array';
+	$type = $_GET['field'];
+	$type_parts = explode("_",$type,2);
+	foreach($type_parts AS &$value){
+		$value = ucfirst($value);
+	}
+	$type = implode("_",$type_parts);
+	$type = $type.'_array';
 
 	$data['add_in'] ='';
 	//Org ID
